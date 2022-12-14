@@ -102,7 +102,7 @@ func someUsefulThings() {
 type User struct {
 	Username string
 	Password string
-
+	FileMap  [99]FileIDPair
 	// You can add other attributes here if you want! But note that in order for attributes to
 	// be included when this struct is serialized to/from JSON, they must be capitalized.
 	// On the flipside, if you have an attribute that you want to be able to access from
