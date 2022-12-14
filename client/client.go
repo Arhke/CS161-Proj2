@@ -101,6 +101,7 @@ func someUsefulThings() {
 // (e.g. like the Username attribute) and methods (e.g. like the StoreFile method below).
 type User struct {
 	Username string
+	Password string
 
 	// You can add other attributes here if you want! But note that in order for attributes to
 	// be included when this struct is serialized to/from JSON, they must be capitalized.
@@ -109,16 +110,30 @@ type User struct {
 	// of this struct that's stored in datastore, then you can use a "private" variable (e.g. one that
 	// begins with a lowercase letter).
 }
+type FileIDPair struct {
+	File string
+	UUID []byte
+}
 
 // NOTE: The following methods have toy (insecure!) implementations.
 
 func InitUser(username string, password string) (userdataptr *User, err error) {
+	//generate a encryption and decryption key pair here
+	// var pk userlib.PKEEncKey
+	// var sk userlib.PKEDecKey
+	// pk, sk, _ = userlib.PKEKeyGen()
+	userlib.DebugMsg("Struct: %v", course)
+
 	var userdata User
 	userdata.Username = username
 	return &userdata, nil
 }
 
 func GetUser(username string, password string) (userdataptr *User, err error) {
+	// user.UUID = uuid.New().String()
+	// fmt.Println(user.UUID)
+	// uid := uuid.MustParse(user.UUID)
+
 	var userdata User
 	userdataptr = &userdata
 	return userdataptr, nil
@@ -154,15 +169,18 @@ func (userdata *User) LoadFile(filename string) (content []byte, err error) {
 	return content, err
 }
 
-func (userdata *User) CreateInvitation(filename string, recipientUsername string) (
-	invitationPtr uuid.UUID, err error) {
+func (userdata *User) CreateInvitation(filename string, recipientUsername string) (invitationPtr uuid.UUID, err error) {
+	//don't need to verify it is from owner, only owner can generate a readable key for subuser
+	// need to make sure the user can't modify the file. 
 	return
 }
 
 func (userdata *User) AcceptInvitation(senderUsername string, invitationPtr uuid.UUID, filename string) error {
+	// grab the reading key from the invitation
 	return nil
 }
 
 func (userdata *User) RevokeAccess(filename string, recipientUsername string) error {
+	//decrypt file data and reencrypt with a key that is not shared with said user. 
 	return nil
 }
