@@ -102,7 +102,10 @@ func someUsefulThings() {
 type User struct {
 	Username string
 	Password string
-	FileMap  [99]FileIDPair
+	PrivateKey userlib.PKEDecKey
+	SignKey    userlib.DSSignKey
+	// FileMap  [99]FileIDPair
+	// Max      int
 	// You can add other attributes here if you want! But note that in order for attributes to
 	// be included when this struct is serialized to/from JSON, they must be capitalized.
 	// On the flipside, if you have an attribute that you want to be able to access from
@@ -112,7 +115,7 @@ type User struct {
 }
 type FileIDPair struct {
 	File string
-	UUID []byte
+	UUID string
 }
 
 // NOTE: The following methods have toy (insecure!) implementations.
@@ -122,19 +125,22 @@ func InitUser(username string, password string) (userdataptr *User, err error) {
 	// var pk userlib.PKEEncKey
 	// var sk userlib.PKEDecKey
 	// pk, sk, _ = userlib.PKEKeyGen()
-	userlib.DebugMsg("Struct: %v", course)
-
+	//generate UUID, generate a signature  in keystore. used same key
 	var userdata User
 	userdata.Username = username
+	userdata.Password = password
+	sk, sign, err := InitUserKeys(username)
+	userdata.PrivateKey = sk
+	userdata.SignKey = sign
 	return &userdata, nil
 }
 
 func GetUser(username string, password string) (userdataptr *User, err error) {
-	// user.UUID = uuid.New().String()
-	// fmt.Println(user.UUID)
-	// uid := uuid.MustParse(user.UUID)
-
+	
 	var userdata User
+	
+	
+
 	userdataptr = &userdata
 	return userdataptr, nil
 }
@@ -184,3 +190,61 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 	//decrypt file data and reencrypt with a key that is not shared with said user. 
 	return nil
 }
+
+
+
+
+
+
+
+
+
+//==================<KeyStore>===============
+func GetUserSignUUID(username string) (usersignUUID string, err error) {
+	signUUID, err := uuid.FromBytes(userlib.Hash([]byte(username + "/Signature"))[:16])
+	return signUUID.String(), err
+}
+func GetUserPublicUUID(username string) (usersignUUID string, err error) {
+	signUUID, err := uuid.FromBytes(userlib.Hash([]byte(username + "/PublicKey"))[:16])
+	return signUUID.String(), err
+}
+func InitUserKeys(username string) (private userlib.PKEDecKey, signature userlib.DSSignKey, err error) {
+
+	var pk userlib.PKEEncKey
+	var sk userlib.PKEDecKey
+	var verify userlib.DSVerifyKey
+	var sign userlib.DSSignKey
+	signUUID, signError := GetUserSignUUID(username)
+	if signError != nil {
+		return sk, sign, signError
+	}
+	publicUUID, publicError := GetUserPublicUUID(username)
+	if publicError != nil {
+		return sk, sign, publicError
+	}
+	pk, sk, publicKeyGenError := userlib.PKEKeyGen()
+	if publicKeyGenError != nil {
+		return sk, sign, publicKeyGenError
+	}
+	sign, verify, signKeyGenError := userlib.DSKeyGen()
+	if signKeyGenError != nil {
+		return sk, sign, signKeyGenError
+	}
+	signStoreError := userlib.KeystoreSet(signUUID, verify)
+	if signStoreError != nil {
+		return sk, sign, err
+	}
+	publicStoreError := userlib.KeystoreSet(publicUUID, pk)
+	if publicStoreError != nil {
+		return sk, sign, err
+	}
+	return sk, sign, nil
+}
+
+
+//=================<User Struct>==============
+func GetUserPassUUID(username string, password string) (userpassPtr uuid.UUID, err error) {
+	keyUUID, err := uuid.FromBytes(userlib.Hash(userlib.Hash([]byte(username + password)))[:16])
+	return keyUUID, err
+}
+// func GetUserMac()
