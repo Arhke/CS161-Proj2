@@ -121,9 +121,14 @@ type Nextpart struct{
 }
 type Invitation struct{ //remote only
 	Name string
-	Sender string
+	Owner string
 	SymmetricKey []byte
 	MacKey []byte
+}
+type InvitationWrapper struct{
+	Invitation []byte
+	MacKey []byte
+	SymmetricKey []byte
 }
 type Filemetameta struct{ //local only
 	MacKey []byte
@@ -177,9 +182,20 @@ func (userdata *User) StoreFile(filename string, content []byte) error {
 	if(ok){
 		if (fileinfo.Sender == userdata.UserName){//if yes then check if user is owner
 			//if is owner, try overwriting directly, then reencrypting using known params
+			//don't need to change filemeta
 			return UpdateRemoteFile(fileinfo.FileMeta, content, false)
 		}else{
 			//if not owner, search for the invitation. 
+			invitation, err := CheckRemoteInvitation(userdata, fileinfo.Sender, fileinfo.Name)
+			if err != nil{
+				return err
+			}
+			filemeta, err := ReadRemoteFileMeta(invitation, userdata)
+			if err != nil{
+				return err
+			}
+			return UpdateRemoteFile(filemeta, content, false)
+
 		}
 	}else{
 		//if not, store new file
@@ -190,9 +206,15 @@ func (userdata *User) StoreFile(filename string, content []byte) error {
 		if err != nil {
 			return err
 		}
-		return UpdateRemoteFile(newfileinfo.FileMeta, content, false)
+		err = UpdateRemoteFile(newfileinfo.FileMeta, content, false)
+		if err != nil {
+			return err
+		}
+		//add new entry in file info
+		userdata.FileInfo[userdata.NextFileInfo] = newfileinfo
+		userdata.NextFileInfo++
+		return UpdateRemoteUser(userdata)
 	}
-	return nil
 }
 
 func (userdata *User) AppendToFile(filename string, content []byte) error {
@@ -200,7 +222,29 @@ func (userdata *User) AppendToFile(filename string, content []byte) error {
 	if err != nil {
 		return err
 	}
-	return nil
+	var fileinfo Fileinfo
+	fileinfo, ok := SearchFileInfo(userdata, filename)//search for file info instance
+	if(ok){
+		if (fileinfo.Sender == userdata.UserName){//if yes then check if user is owner
+			//if is owner, try overwriting directly, then reencrypting using known params
+			//don't need to change filemeta
+			return UpdateRemoteFile(fileinfo.FileMeta, content, true)
+		}else{
+			//if not owner, search for the invitation. 
+			invitation, err := CheckRemoteInvitation(userdata, fileinfo.Sender, fileinfo.Name)
+			if err != nil{
+				return err
+			}
+			filemeta, err := ReadRemoteFileMeta(invitation, userdata)
+			if err != nil{
+				return err
+			}
+			return UpdateRemoteFile(filemeta, content, true)
+
+		}
+	}else{
+		return errors.New("File Does not quite exist")
+	}
 }
 
 func (userdata *User) LoadFile(filename string) (content []byte, err error) {
@@ -208,16 +252,30 @@ func (userdata *User) LoadFile(filename string) (content []byte, err error) {
 	if err != nil {
 		return []byte(""), err
 	}
-	storageKey, err := uuid.FromBytes(userlib.Hash([]byte(filename + userdata.UserName))[:16])
-	if err != nil {
-		return nil, err
+	var fileinfo Fileinfo
+	fileinfo, ok := SearchFileInfo(userdata, filename)//search for file info instance
+	if(ok){
+		if (fileinfo.Sender == userdata.UserName){//if yes then check if user is owner
+			//if is owner, try overwriting directly, then reencrypting using known params
+			//don't need to change filemeta 
+
+			return ReadRemoteFile(fileinfo.FileMeta)
+		}else{
+			//if not owner, search for the invitation. 
+			invitation, err := CheckRemoteInvitation(userdata, fileinfo.Sender, fileinfo.Name)
+			if err != nil{
+				return []byte{},err
+			}
+			filemeta, err := ReadRemoteFileMeta(invitation, userdata)
+			if err != nil{
+				return []byte{}, err
+			}
+			return ReadRemoteFile(filemeta)
+
+		}
+	}else{
+		return []byte{}, errors.New(strings.ToTitle("file not found"))
 	}
-	dataJSON, ok := userlib.DatastoreGet(storageKey)
-	if !ok {
-		return nil, errors.New(strings.ToTitle("file not found"))
-	}
-	err = json.Unmarshal(dataJSON, &content)
-	return content, err
 }
 
 func (userdata *User) CreateInvitation(filename string, recipientUsername string) (invitationPtr uuid.UUID, err error) {
@@ -225,6 +283,11 @@ func (userdata *User) CreateInvitation(filename string, recipientUsername string
 	if err != nil {
 		return uuid.New(), err
 	}
+	// var invitation Invitation
+	// invitation.Name = filename
+	// invitation.Owner = owner
+	// invitation.MacKey = mackey
+	// invitation.SymmetricKey = symmetrickey
 	//don't need to verify it is from owner, only owner can generate a readable key for subuser
 	// need to make sure the user can't modify the file. 
 	return
@@ -245,8 +308,126 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 }
 
 
+//==========================<Invitation>=====================
+func SendRemoteInvitation(userdata *User, to string, invitation Invitation)  error {
+	content := []byte{}
+	content, err := json.Marshal(invitation)
+	if err != nil {
+		return err
+	}
+	var sign Signature
+	sign, err = MsgToSign(userdata.SignKey, content)
+	if err != nil {
+		return err
+	}
+	content, err = json.Marshal(sign)
+	if err != nil {
+		return err
+	}
+	symmetrickey:=userlib.RandomBytes(16)
+	mackey:=userlib.RandomBytes(16)
+	content = MsgToEncrypt(symmetrickey, content)
+	mac, err := MsgToMac(mackey, content)
+	if err != nil {
+		return err
+	}
+	content, err = json.Marshal(mac)
+	if err != nil {
+		return err
+	}
 
+	//Get recipient publickey
+	toUUID, err := GetUserPublicUUID(to)
+	if err != nil {
+		return err
+	}
+	pk, ok := userlib.KeystoreGet(toUUID)
+	if !ok {
+		return errors.New("No valid PublicKey")
+	}
 
+	//public key encrypt mac and symmetric
+	mackey, err = userlib.PKEEnc(pk, mackey)
+	if err != nil {
+		return err
+	}
+	symmetrickey, err = userlib.PKEEnc(pk, symmetrickey)
+	if err != nil {
+		return err
+	}
+	//init iwrapper
+	var iwrapper InvitationWrapper
+	iwrapper.Invitation = content
+	iwrapper.MacKey = mackey
+	iwrapper.SymmetricKey = symmetrickey
+	iwrapperbytes,err := json.Marshal(iwrapper)
+	if err != nil {
+		return err
+	}
+	inviteUUID, err:= GetInvitationUUID(to, invitation.Name, userdata.UserName)
+	if err != nil {
+		return err
+	}
+	userlib.DatastoreSet(inviteUUID, iwrapperbytes)
+	return nil
+}//done
+func CheckRemoteInvitation(userdata *User, from string, filename string) (invitation Invitation, err error) {
+	inviteUUID, err:= GetInvitationUUID(userdata.UserName, filename, from)
+	if err != nil {
+		return invitation, err
+	}
+	content, ok:=userlib.DatastoreGet(inviteUUID)
+	if !ok {
+		return invitation, errors.New("Can't Get Invite")
+	}
+	var iwrapper InvitationWrapper
+	err = json.Unmarshal(content, &iwrapper)
+	if err != nil {
+		return invitation, err
+	}
+	mackey := iwrapper.MacKey
+	symmetrickey := iwrapper.SymmetricKey
+	mackey, err = userlib.PKEDec(userdata.PrivateKey, mackey)
+	if err != nil {
+		return invitation, err
+	}
+	symmetrickey, err = userlib.PKEDec(userdata.PrivateKey, symmetrickey)
+	if err != nil {
+		return invitation, err
+	}
+	content = iwrapper.Invitation
+
+	var mac Mac
+	err = json.Unmarshal(content, &mac)
+	if err != nil {
+		return invitation, err
+	}
+	content = mac.Msg
+	content = DecryptToMsg(symmetrickey, content)
+	var sign Signature
+	err = json.Unmarshal(content, &sign)
+	if err != nil {
+		return invitation, err
+	}
+	var verifyKey userlib.DSVerifyKey
+	verifyID, err := GetUserSignUUID(from)
+	if err != nil {
+		return invitation, err
+	}
+	verifyKey, ok = userlib.KeystoreGet(verifyID)
+	if !ok {
+		return invitation, errors.New("No Verify Key!")
+	}
+	content, err = SignToMsg(verifyKey, sign)
+	if err != nil {
+		return invitation, err
+	}
+	err = json.Unmarshal(content, &invitation)
+	if err != nil {
+		return invitation, err
+	}
+	return invitation, nil
+}//done
 
 //==========================<FileMeta>========================
 func SecureFileMeta(filemetameta Filemetameta, userdata *User, filemeta Filemeta)(output []byte, err error){
@@ -275,28 +456,77 @@ func SecureFileMeta(filemetameta Filemetameta, userdata *User, filemeta Filemeta
 	return output, nil
 }//done
 func CheckFileMeta(invitation Invitation, input []byte)(filemeta Filemeta, err error){
+	output := input
 	var mac Mac
 	err = json.Unmarshal(output, &mac)
 	if err != nil {
-		return []byte(""), err
+		return filemeta, err
 	}
 	output = mac.Msg
-	output = DecryptToMsg(filemeta.SymmetricKey, output)
+	output = DecryptToMsg(invitation.SymmetricKey, output)
 	var sign Signature
 	err = json.Unmarshal(output, &sign)
 	if err != nil {
-		return output, err
+		return filemeta, err
 	}
 	var verifyKey userlib.DSVerifyKey
-	verifyKey = filemeta.VerifyKey
+	verifyID, err := GetUserSignUUID(invitation.Owner)
+	if err != nil {
+		return filemeta, err
+	}
+	verifyKey, ok := userlib.KeystoreGet(verifyID)
+	if !ok {
+		return filemeta, errors.New("No Verify Key!")
+	}
 	output, err = SignToMsg(verifyKey, sign)
 	if err != nil {
-		return output, err
+		return filemeta, err
 	}
 	err = json.Unmarshal(output, &filemeta)
 	if err != nil {
 		return filemeta, err
 	}
+	return filemeta, nil
+}//done
+func ReadRemoteFileMeta(invitation Invitation, userdata *User)(filemeta Filemeta, err error){
+	filemetaUUID, err := GetFileMetaUUID(invitation.Owner, invitation.Name, userdata.UserName)
+	if err != nil {
+		return filemeta, err 
+	}
+	filemetabytes, ok := userlib.DatastoreGet(filemetaUUID)
+	if !ok {
+		return filemeta, err
+	}
+	filemeta, err = CheckFileMeta(invitation, filemetabytes)
+	if err != nil {
+		return filemeta, err
+	}
+	return filemeta, nil
+}//done
+func UpdateRemoteFileMeta(filemetameta Filemetameta, userdata *User, filemeta Filemeta)(err error){
+	filemetaUUID, err := GetFileMetaUUID(filemeta.Owner, filemeta.Name, userdata.UserName)
+	if err != nil {
+		return err 
+	}
+
+	filemetabytes, err := SecureFileMeta(filemetameta, userdata, filemeta)
+	if err != nil {
+		return err
+	}
+	userlib.DatastoreSet(filemetaUUID, filemetabytes)
+	return nil
+}//done
+func GenFileMeta(owner string, filename string)(filemeta Filemeta, err error){
+	filemeta.SymmetricKey = userlib.RandomBytes(16)
+	filemeta.MacKey = userlib.RandomBytes(16)
+	sk, vk, err := userlib.DSKeyGen()
+	if err!=nil {
+		return filemeta, err
+	}
+	filemeta.SignKey = sk
+	filemeta.VerifyKey = vk
+	filemeta.Name = filename
+	filemeta.Owner = owner
 	return filemeta, nil
 }//done
 
@@ -352,19 +582,7 @@ func SearchFileInfo(userdata *User, file string) (fileinfo Fileinfo, ok bool){
 	}
 	return fileinfo, false
 }//done
-func GenFileMeta(owner string, filename string)(filemeta Filemeta, err error){
-	filemeta.SymmetricKey = userlib.RandomBytes(16)
-	filemeta.MacKey = userlib.RandomBytes(16)
-	sk, vk, err := userlib.DSKeyGen()
-	if err!=nil {
-		return filemeta, err
-	}
-	filemeta.SignKey = sk
-	filemeta.VerifyKey = vk
-	filemeta.Name = filename
-	filemeta.Owner = owner
-	return filemeta, nil
-}//done
+
 func SecureFileNode(filemeta Filemeta, input []byte)(output []byte, err error){
 	output = input
 	var sign Signature
