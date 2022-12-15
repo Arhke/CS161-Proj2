@@ -101,14 +101,14 @@ func someUsefulThings() {
 // (e.g. like the Username attribute) and methods (e.g. like the StoreFile method below).
 type User struct {
 	UserName string
-	PassHash []byte
+	passHash []byte
 	PrivateKey userlib.PKEDecKey
 	SignKey    userlib.DSSignKey
-	FileInfo   Fileinfo
+	FileInfo   [99]Fileinfo
+	NextFileInfo int
 }
 type Filemeta struct {
-	EncryptKey  userlib.PKEEncKey
-	DecryptKey  userlib.PKEDecKey
+	SymmetricKey  []byte 
 	MacKey      []byte
 	SignKey     userlib.DSSignKey
 	VerifyKey   userlib.DSVerifyKey
@@ -117,8 +117,8 @@ type Filemeta struct {
 }
 type Invitation struct{
 	Name string
-	Owner string
-	DecryptKey userlib.PKEDecKey
+	Sender string
+	SymmetricKey []byte
 	MacKey []byte
 }
 type Filemetameta struct{
@@ -129,7 +129,8 @@ type Filemetameta struct{
 type Fileinfo struct {
 	Sender string
 	FileMeta Filemeta
-	FileMetaMeta []Filemetameta
+	FileMetaMeta [99]Filemetameta
+	NextFileMetaMeta int
 }
 
 // NOTE: The following methods have toy (insecure!) implementations.
@@ -139,7 +140,7 @@ func InitUser(username string, password string) (userdataptr *User, err error) {
 	//Initialize User Struct
 	var userdata User
 	userdata.UserName = username
-	userdata.PassHash = userlib.Hash([]byte(password))
+	userdata.passHash = userlib.Hash([]byte(password))
 	sk, sign, err := InitUserKeys(username)
 	userdata.PrivateKey = sk
 	userdata.SignKey = sign
@@ -213,14 +214,15 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 
 
 //==============<Securing Helpers>============
-// func SecureUserData(userdata *User, msg []byte)(result []byte, err error){
-// 	ret := msg
-// 	SignToMsg(userdata.)
-// }
-
-
+// 
 
 //==================<User>======================
+func GenUserKey (userdata *User) []byte{
+	return userlib.Argon2Key(userdata.passHash, []byte(userdata.UserName + "/Key"), 16)
+}
+func GenUserMac(userdata *User) []byte{
+	return userlib.Argon2Key(userdata.passHash, []byte(userdata.UserName + "/Mac"), 16)
+}
 func InitUserKeys(username string) (private userlib.PKEDecKey, signature userlib.DSSignKey, err error) {
 
 	var pk userlib.PKEEncKey
@@ -253,6 +255,32 @@ func InitUserKeys(username string) (private userlib.PKEDecKey, signature userlib
 	}
 	return sk, sign, nil
 }
+func SecureUser(userdata *User)(result []byte, err error){
+	ret, err := json.Marshal(userdata)
+	if err != nil {
+		return ret, err
+	}
+	SignStruct, err := MsgToSign(userdata.SignKey, ret)
+	if err != nil {
+		return ret, err
+	}
+	ret, err = json.Marshal(SignStruct)
+	if err != nil {
+		return ret, err
+	}
+	ret = MsgToEncrypt(GenUserKey(userdata), ret)
+	macStruct, err := MsgToMac(GenUserMac(userdata), ret)
+	if err != nil {
+		return ret, err
+	}
+	ret, err = json.Marshal(macStruct)
+	if err != nil {
+		return ret, err
+	}
+	return ret,  nil
+}
+
+
 
 
 
@@ -415,7 +443,7 @@ func MsgToSign (signKey userlib.DSSignKey, msg []byte)(signature Signature, err 
 	sign.Sign = signBytes
 	return sign, err
 }
-func SignToMsg (signature Signature, verifyKey userlib.DSVerifyKey)(msg []byte, err error){
+func SignToMsg (verifyKey userlib.DSVerifyKey, signature Signature)(msg []byte, err error){
 	err = userlib.DSVerify(verifyKey, signature.Msg, signature.Sign)
 	if err != nil{
 		return []byte(""), err
