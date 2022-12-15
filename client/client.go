@@ -121,17 +121,22 @@ type FileIDPair struct {
 // NOTE: The following methods have toy (insecure!) implementations.
 
 func InitUser(username string, password string) (userdataptr *User, err error) {
-	//generate a encryption and decryption key pair here
-	// var pk userlib.PKEEncKey
-	// var sk userlib.PKEDecKey
-	// pk, sk, _ = userlib.PKEKeyGen()
-	//generate UUID, generate a signature  in keystore. used same key
+
+	//Initialize User Struct
 	var userdata User
 	userdata.Username = username
 	userdata.Password = password
 	sk, sign, err := InitUserKeys(username)
 	userdata.PrivateKey = sk
 	userdata.SignKey = sign
+
+
+	userbytes, err := json.Marshal(userdata)
+	if err != nil {
+		return &userdata, nil 
+	}
+	UUID, err := GetUserPassUUID(username, password)
+	userlib.DatastoreSet(UUID, userbytes)
 	return &userdata, nil
 }
 
@@ -247,4 +252,72 @@ func GetUserPassUUID(username string, password string) (userpassPtr uuid.UUID, e
 	keyUUID, err := uuid.FromBytes(userlib.Hash(userlib.Hash([]byte(username + password)))[:16])
 	return keyUUID, err
 }
-// func GetUserMac()
+
+//==================<Sign>================
+type Signature struct {
+	Msg []byte
+	Sign []byte
+}
+func MsgToSign (signKey userlib.DSSignKey, msg []byte)(signature Signature, err error){
+	var sign Signature
+	sign.Msg = msg
+	signBytes, err := userlib.DSSign(signKey, msg)
+	if err != nil {
+		return sign, err
+	}
+	sign.Sign = signBytes
+	return sign, err
+}
+func SignToMsg (signature Signature, verifyKey userlib.DSVerifyKey)(msg []byte, err error){
+	err = userlib.DSVerify(verifyKey, signature.Msg, signature.Sign)
+	if err != nil{
+		return []byte(""), err
+	}
+
+	return signature.Msg, nil
+}
+
+//==================<Encrypt>=================
+func MsgToEncrypt (key []byte, plaintxt []byte) []byte {
+	iv := userlib.RandomBytes(16)
+	return userlib.SymEnc(key, iv, plaintxt)
+}
+func DecryptToMsg (key []byte, ciphertxt []byte) []byte {
+	//Hmac covers panic cases
+	return userlib.SymDec(key, ciphertxt)
+}
+//====================<HMac>==================
+/*
+ * The Mac Keys are 16 byte symmetric
+ */
+type Mac struct {
+	Msg  []byte
+	HMAC []byte
+}
+func MsgToMac(key []byte, msg []byte) (mac Mac, err error){ 
+	var ret Mac
+	ret.Msg = msg
+	ret.HMAC, err = userlib.HMACEval(key, msg)
+	if (err != nil){
+		return ret, err
+	}
+	return ret, nil
+}
+func VerifyMsgIntegrity(key []byte, mac Mac) (ok bool, err error) {
+	newHMAC, err := userlib.HMACEval(key, []byte(mac.Msg))
+	if (err != nil){
+		return false, err
+	}
+	return userlib.HMACEqual(newHMAC,mac.HMAC), nil
+}//internal helper
+func MacToMsg(key []byte, mac Mac) (msg []byte, err error){
+	ok, err := VerifyMsgIntegrity(key, mac)
+	if (err != nil){
+		return []byte(""), err
+	}
+	if (!ok){
+		return []byte(""), errors.New("Retrieval msg has been tampered with")
+	}
+	return mac.Msg, nil
+}
+
