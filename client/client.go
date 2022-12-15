@@ -101,7 +101,7 @@ func someUsefulThings() {
 // (e.g. like the Username attribute) and methods (e.g. like the StoreFile method below).
 type User struct {
 	Username string
-	Password string
+	PassHash []byte
 	PrivateKey userlib.PKEDecKey
 	SignKey    userlib.DSSignKey
 	// FileMap  [99]FileIDPair
@@ -125,7 +125,7 @@ func InitUser(username string, password string) (userdataptr *User, err error) {
 	//Initialize User Struct
 	var userdata User
 	userdata.Username = username
-	userdata.Password = password
+	userdata.PassHash = userlib.Hash([]byte(password))
 	sk, sign, err := InitUserKeys(username)
 	userdata.PrivateKey = sk
 	userdata.SignKey = sign
@@ -135,7 +135,7 @@ func InitUser(username string, password string) (userdataptr *User, err error) {
 	if err != nil {
 		return &userdata, nil 
 	}
-	UUID, err := GetUserPassUUID(username, password)
+	UUID, err := GetUserUUID(username, password)
 	userlib.DatastoreSet(UUID, userbytes)
 	return &userdata, nil
 }
@@ -198,21 +198,15 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 
 
 
+//==============<Securing Helpers>============
+// func SecureUserData(userdata *User, msg []byte)(result []byte, err error){
+// 	ret := msg
+// 	SignToMsg(userdata.)
+// }
 
 
 
-
-
-
-//==================<KeyStore>===============
-func GetUserSignUUID(username string) (usersignUUID string, err error) {
-	signUUID, err := uuid.FromBytes(userlib.Hash([]byte(username + "/Signature"))[:16])
-	return signUUID.String(), err
-}
-func GetUserPublicUUID(username string) (usersignUUID string, err error) {
-	signUUID, err := uuid.FromBytes(userlib.Hash([]byte(username + "/PublicKey"))[:16])
-	return signUUID.String(), err
-}
+//==================<User>======================
 func InitUserKeys(username string) (private userlib.PKEDecKey, signature userlib.DSSignKey, err error) {
 
 	var pk userlib.PKEEncKey
@@ -247,11 +241,150 @@ func InitUserKeys(username string) (private userlib.PKEDecKey, signature userlib
 }
 
 
-//=================<User Struct>==============
-func GetUserPassUUID(username string, password string) (userpassPtr uuid.UUID, err error) {
-	keyUUID, err := uuid.FromBytes(userlib.Hash(userlib.Hash([]byte(username + password)))[:16])
-	return keyUUID, err
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//==================<KeyStore>===============
+func GetUserSignUUID(username string) (usersignUUID string, err error) {
+	signUUID, err := uuid.FromBytes(userlib.Hash([]byte(username + "/Signature"))[:16])
+	return signUUID.String(), err
 }
+func GetUserPublicUUID(username string) (usersignUUID string, err error) {
+	signUUID, err := uuid.FromBytes(userlib.Hash([]byte(username + "/PublicKey"))[:16])
+	return signUUID.String(), err
+}
+
+//=================<DataStore>==============
+/*
+ * For User Struct
+ */
+func GetUserUUID(username string, password string) (userpassPtr uuid.UUID, err error) {
+	return uuid.FromBytes(userlib.Hash(userlib.Hash([]byte(username + password)))[:16])
+}
+/*
+ * For the first File Part String
+ */
+func GetFileUUID(owner string, filename string) (userpassPtr uuid.UUID, err error) {
+	return GetFilePartUUID(owner, filename, 0)
+}
+/*
+ * For a File Part String
+ */
+func GetFilePartUUID(owner string, filename string, part int) (userpassPtr uuid.UUID, err error) {
+	return uuid.FromBytes(userlib.Hash([]byte(owner + filename + "/" + string(part)))[:16])
+}
+/*
+ * Next Uninitialized file part integer UUID
+ */
+func GetNextPartUUID(owner string, filename string) (userpassPtr uuid.UUID, err error) {
+	return uuid.FromBytes(userlib.Hash([]byte(owner + filename + "/NextPart"))[:16])
+}
+/*
+ * Get FileMeta struct
+ */
+func GetFileMetaUUID(owner string, filename string, user string) (userpassPtr uuid.UUID, err error) {
+	return uuid.FromBytes(userlib.Hash([]byte(user + owner + filename))[:16])
+}
+/*
+ * Invitation struct
+ */
+func GetInvitationUUID(user string, filename string, sender string) (userpassPtr uuid.UUID, err error) {
+	return uuid.FromBytes(userlib.Hash([]byte(user + sender + filename))[:16])
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //==================<Sign>================
 type Signature struct {
