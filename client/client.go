@@ -101,11 +101,12 @@ func someUsefulThings() {
 // (e.g. like the Username attribute) and methods (e.g. like the StoreFile method below).
 type User struct {
 	UserName string
+	password string
 	passHash []byte
 	PrivateKey userlib.PKEDecKey
 	SignKey    userlib.DSSignKey
-	FileInfo   [99]Fileinfo
-	NextFileInfo int
+	FileInfo   [99]Fileinfo // I change
+	NextFileInfo int   // I also change
 }
 type Filemeta struct {
 	SymmetricKey  []byte 
@@ -140,17 +141,21 @@ func InitUser(username string, password string) (userdataptr *User, err error) {
 	//Initialize User Struct
 	var userdata User
 	userdata.UserName = username
+	userdata.password = password
 	userdata.passHash = userlib.Hash([]byte(password))
 	sk, sign, err := InitUserKeys(username)
 	userdata.PrivateKey = sk
 	userdata.SignKey = sign
-
-
-	userbytes, err := json.Marshal(userdata)
-	if err != nil {
-		return &userdata, nil 
-	}
+	userdata.NextFileInfo = 0;
+	//store user struct
 	UUID, err := GetUserUUID(username, password)
+	if err != nil {
+		return &userdata, err 
+	}
+	userbytes, err := SecureUser(&userdata)
+	if err != nil {
+		return &userdata, err
+	}
 	userlib.DatastoreSet(UUID, userbytes)
 	return &userdata, nil
 }
@@ -158,11 +163,20 @@ func InitUser(username string, password string) (userdataptr *User, err error) {
 func GetUser(username string, password string) (userdataptr *User, err error) {
 	
 	var userdata User
+	fmt.Println("========================NOTICE ME (GetUser) =========================")
+	fmt.Println(1)
+	UUID, err := GetUserUUID(username, password)
+	if err != nil {
+		return &userdata, err 
+	}
+	fmt.Println(2)
+	userbytes, ok := userlib.DatastoreGet(UUID)
+	if !ok {
+		return &userdata, errors.New("Was Unable to Retrieve User Data")
+	}
+	fmt.Println(3)
 	
-	
-
-	userdataptr = &userdata
-	return userdataptr, nil
+	return CheckUser(username, password, userbytes) 
 }
 
 func (userdata *User) StoreFile(filename string, content []byte) (err error) {
@@ -217,11 +231,11 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 // 
 
 //==================<User>======================
-func GenUserKey (userdata *User) []byte{
-	return userlib.Argon2Key(userdata.passHash, []byte(userdata.UserName + "/Key"), 16)
+func GenUserKey (username string, passHash []byte) []byte{
+	return userlib.Argon2Key(passHash, []byte(username + "/Key"), 16)
 }
-func GenUserMac(userdata *User) []byte{
-	return userlib.Argon2Key(userdata.passHash, []byte(userdata.UserName + "/Mac"), 16)
+func GenUserMac(username string, passHash []byte) []byte{
+	return userlib.Argon2Key(passHash, []byte(username + "/Mac"), 16)
 }
 func InitUserKeys(username string) (private userlib.PKEDecKey, signature userlib.DSSignKey, err error) {
 
@@ -260,16 +274,17 @@ func SecureUser(userdata *User)(result []byte, err error){
 	if err != nil {
 		return ret, err
 	}
-	SignStruct, err := MsgToSign(userdata.SignKey, ret)
+	var sign Signature
+	sign, err = MsgToSign(userdata.SignKey, ret)
 	if err != nil {
 		return ret, err
 	}
-	ret, err = json.Marshal(SignStruct)
+	ret, err = json.Marshal(sign)
 	if err != nil {
 		return ret, err
 	}
-	ret = MsgToEncrypt(GenUserKey(userdata), ret)
-	macStruct, err := MsgToMac(GenUserMac(userdata), ret)
+	ret = MsgToEncrypt(GenUserKey(userdata.UserName, userdata.passHash), ret)
+	macStruct, err := MsgToMac(GenUserMac(userdata.UserName, userdata.passHash), ret)
 	if err != nil {
 		return ret, err
 	}
@@ -278,6 +293,39 @@ func SecureUser(userdata *User)(result []byte, err error){
 		return ret, err
 	}
 	return ret,  nil
+}
+func CheckUser(username string, password string, content []byte)(userStruct *User, err error){
+	var userdata User
+	var mac Mac
+	err = json.Unmarshal(content, &mac)
+	if err != nil {
+		return &userdata, err
+	}
+	content = mac.Msg
+	content = DecryptToMsg(GenUserKey(username, userlib.Hash([]byte(password))), content)
+	var sign Signature
+	err = json.Unmarshal(content, &sign)
+	if err != nil {
+		return &userdata, err
+	}
+	var verifyKey userlib.DSVerifyKey
+	verifyID, err := GetUserSignUUID(username)
+	if err != nil {
+		return &userdata, err
+	}
+	verifyKey, ok := userlib.KeystoreGet(verifyID)
+	if !ok {
+		return &userdata, errors.New("No Verify Key!")
+	}
+	content, err = SignToMsg(verifyKey, sign)
+	if err != nil {
+		return &userdata, err
+	}
+	err = json.Unmarshal(content, &userdata)
+	if err != nil {
+		return &userdata, err
+	}
+	return &userdata,  nil
 }
 
 
