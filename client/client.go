@@ -154,6 +154,9 @@ func InitUser(username string, password string) (userdataptr *User, err error) {
 	userdata.password = password
 	userdata.passHash = userlib.Hash([]byte(password))
 	sk, sign, err := InitUserKeys(username)
+	if err != nil{
+		return &userdata, err
+	}
 	userdata.PrivateKey = sk
 	userdata.SignKey = sign
 	userdata.NextFileInfo = 0;
@@ -391,28 +394,24 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 	fmm.MacKey = userlib.RandomBytes(16)
 	fmm.SymmetricKey = userlib.RandomBytes(16)
 	fmm.Sent = ""
-	fmt.Println(1)
-	//generate a new FileMeta
 	
-	fmt.Println(2)
+	
 	//Reencrypt the file with the new File Meta (read then rewrite)
 	content, err := ReadRemoteFile(fileinfo.FileMeta)
 	if err != nil {
 		return err
 	}
+	//generate a new FileMeta
 	filemeta, err := GenFileMeta(userdata.UserName, filename)
 	if err != nil {
 		return err
 	}
-	fmt.Println(3)
 	err = UpdateRemoteFile(filemeta, content, false)
 	if err != nil {
 		return err
 	}
-	fmt.Println(4)
 	//Update the RemoteFileMetas
 	fileinfo, _ = SearchFileInfo(userdata, filename)
-	fmt.Println(5)
 	fileinfo.FileMeta = filemeta //update local filemeta
 	for i := 0; i < fileinfo.NextFileMetaMeta; i++ {
 		filemetameta := fileinfo.FileMetaMeta[i]
@@ -422,7 +421,6 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 		}
 		
 	}
-	fmt.Println(6)
 	//Update Remote User
 	return UpdateRemoteUser(userdata)
 }
@@ -885,32 +883,36 @@ func GenUserMac(username string, passHash []byte) []byte{
 }
 func InitUserKeys(username string) (private userlib.PKEDecKey, signature userlib.DSSignKey, err error) {
 
+
 	var pk userlib.PKEEncKey
 	var sk userlib.PKEDecKey
 	var verify userlib.DSVerifyKey
 	var sign userlib.DSSignKey
-	signUUID, signError := GetUserSignUUID(username)
-	if signError != nil {
-		return sk, sign, signError
+	if(len(username) == 0){
+		return sk, sign, errors.New("Can't have empty username") 
 	}
-	publicUUID, publicError := GetUserPublicUUID(username)
-	if publicError != nil {
-		return sk, sign, publicError
-	}
-	pk, sk, publicKeyGenError := userlib.PKEKeyGen()
-	if publicKeyGenError != nil {
-		return sk, sign, publicKeyGenError
-	}
-	sign, verify, signKeyGenError := userlib.DSKeyGen()
-	if signKeyGenError != nil {
-		return sk, sign, signKeyGenError
-	}
-	signStoreError := userlib.KeystoreSet(signUUID, verify)
-	if signStoreError != nil {
+	signUUID, err := GetUserSignUUID(username)
+	if err != nil {
 		return sk, sign, err
 	}
-	publicStoreError := userlib.KeystoreSet(publicUUID, pk)
-	if publicStoreError != nil {
+	publicUUID, err := GetUserPublicUUID(username)
+	if err != nil {
+		return sk, sign, err
+	}
+	pk, sk, err = userlib.PKEKeyGen()
+	if err != nil {
+		return sk, sign, err
+	}
+	sign, verify, err = userlib.DSKeyGen()
+	if err != nil {
+		return sk, sign, err
+	}
+	err = userlib.KeystoreSet(signUUID, verify)
+	if err != nil {
+		return sk, sign, err
+	}
+	err = userlib.KeystoreSet(publicUUID, pk)
+	if err != nil {
 		return sk, sign, err
 	}
 	return sk, sign, nil
