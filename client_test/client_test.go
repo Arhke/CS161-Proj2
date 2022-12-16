@@ -657,9 +657,9 @@ var _ = Describe("Client Tests", func() {
 			err = charles.AcceptInvitation("bob", invitationid, aliceFile)
 			Expect(err).To(BeNil())
 
-			// userlib.DebugMsg("Charles append 1 to AliceFile.")
-			// err = charles.AppendToFile(aliceFile, []byte(contentOne))
-			// Expect(err).To(BeNil())
+			userlib.DebugMsg("Charles append 1 to AliceFile.")
+			err = charles.AppendToFile(aliceFile, []byte(contentOne))
+			Expect(err).To(BeNil())
 
 			userlib.DebugMsg("Charles Invites Dorris to edit bobFile.")
 			invitationid, err = charles.CreateInvitation(bobFile, "doris")
