@@ -306,11 +306,7 @@ func (userdata *User) CreateInvitation(filename string, recipientUsername string
 		//add a new local filemetameta and increment nextfilemetameta
 		fileinfo.FileMetaMeta[fileinfo.NextFileMetaMeta] = filemetameta
 		fileinfo.NextFileMetaMeta++
-		//save a new copy of the filemeta
-		err = UpdateRemoteFileMeta(filemetameta, userdata, fileinfo.FileMeta)
-		if (err != nil) {
-			return uuid.New(), err
-		}
+		
 		//add new remote invite update remote user struct
 		invitation.Name = filename
 		invitation.Owner = userdata.UserName
@@ -323,6 +319,11 @@ func (userdata *User) CreateInvitation(filename string, recipientUsername string
 		}
 		//update remote user
 		err = UpdateRemoteUser(userdata)
+		if (err != nil) {
+			return uuid.New(), err
+		}
+		//save a new copy of the filemeta
+		err = UpdateRemoteFileMeta(filemetameta, userdata, fileinfo.FileMeta)
 		if (err != nil) {
 			return uuid.New(), err
 		}
@@ -520,7 +521,10 @@ func CheckRemoteInvitation(userdata *User, from string, filename string) (invita
 	if err != nil {
 		return invitation, err
 	}
-	content = mac.Msg
+	content, err = MacToMsg(mackey, mac)
+	if err != nil {
+		return invitation, err
+	}
 	content = DecryptToMsg(symmetrickey, content)
 	var sign Signature
 	err = json.Unmarshal(content, &sign)
@@ -563,6 +567,7 @@ func SecureFileMeta(filemetameta Filemetameta, userdata *User, filemeta Filemeta
 		return output, err
 	}
 	output = MsgToEncrypt(filemetameta.SymmetricKey, output)
+	
 	macStruct, err := MsgToMac(filemetameta.MacKey, output)
 	if err != nil {
 		return output, err
@@ -580,7 +585,11 @@ func CheckFileMeta(invitation Invitation, input []byte)(filemeta Filemeta, err e
 	if err != nil {
 		return filemeta, err
 	}
-	output = mac.Msg
+
+	output, err = MacToMsg(invitation.MacKey, mac)
+	if err != nil {
+		return filemeta, err
+	}
 	output = DecryptToMsg(invitation.SymmetricKey, output)
 	var sign Signature
 	err = json.Unmarshal(output, &sign)
@@ -608,6 +617,7 @@ func CheckFileMeta(invitation Invitation, input []byte)(filemeta Filemeta, err e
 }//done
 func ReadRemoteFileMeta(invitation Invitation, userdata *User)(filemeta Filemeta, err error){
 	filemetaUUID, err := GetFileMetaUUID(invitation.Owner, invitation.Name, invitation.Initial)
+	fmt.Println("READ", filemetaUUID.String())
 	if err != nil {
 		return filemeta, err 
 	}
@@ -615,6 +625,7 @@ func ReadRemoteFileMeta(invitation Invitation, userdata *User)(filemeta Filemeta
 	if !ok {
 		return filemeta, errors.New("Cannot get Data for FileMetaBytes")
 	}
+	fmt.Println("READ", filemetabytes[:16])
 	filemeta, err = CheckFileMeta(invitation, filemetabytes)
 	if err != nil {
 		return filemeta, err
@@ -622,17 +633,19 @@ func ReadRemoteFileMeta(invitation Invitation, userdata *User)(filemeta Filemeta
 	return filemeta, nil
 }//done
 func UpdateRemoteFileMeta(filemetameta Filemetameta, userdata *User, filemeta Filemeta)(err error){
-
 	filemetaUUID, err := GetFileMetaUUID(filemeta.Owner, filemeta.Name, filemetameta.Sent)
-
+	fmt.Println("WRITE", filemetaUUID.String())
 	if err != nil {
 		return err 
 	}
 	filemetabytes, err := SecureFileMeta(filemetameta, userdata, filemeta)
+	
 	if err != nil {
 		return err
 	}
+
 	userlib.DatastoreSet(filemetaUUID, filemetabytes)
+	fmt.Println("WRITE", filemetabytes[:16])
 	return nil
 }//done
 func GenFileMeta(owner string, filename string)(filemeta Filemeta, err error){
@@ -745,7 +758,10 @@ func CheckFileNode(filemeta Filemeta, input []byte)(output []byte, err error){
 	if err != nil {
 		return []byte(""), err
 	}
-	output = mac.Msg
+	output, err = MacToMsg(filemeta.MacKey, mac)
+	if err != nil {
+		return output, err
+	}
 	output = DecryptToMsg(filemeta.SymmetricKey, output)
 	var sign Signature
 	err = json.Unmarshal(output, &sign)
@@ -949,7 +965,10 @@ func CheckUser(username string, password string, content []byte)(userStruct *Use
 	if err != nil {
 		return &userdata, err
 	}
-	content = mac.Msg
+	content, err = MacToMsg(GenUserMac(username, userlib.Hash([]byte(password))), mac)
+	if err != nil {
+		return &userdata, err
+	}
 	content = DecryptToMsg(GenUserKey(username, userlib.Hash([]byte(password))), content)
 	var sign Signature
 	err = json.Unmarshal(content, &sign)
@@ -1136,14 +1155,15 @@ type Mac struct {
 func MsgToMac(key []byte, msg []byte) (mac Mac, err error){ 
 	var ret Mac
 	ret.Msg = msg
-	ret.HMAC, err = userlib.HMACEval(key, msg)
+	hmac, err := userlib.HMACEval(key, msg)
 	if (err != nil){
 		return ret, err
 	}
+	ret.HMAC = hmac
 	return ret, nil
 }
 func VerifyMsgIntegrity(key []byte, mac Mac) (ok bool, err error) {
-	newHMAC, err := userlib.HMACEval(key, []byte(mac.Msg))
+	newHMAC, err := userlib.HMACEval(key, mac.Msg)
 	if (err != nil){
 		return false, err
 	}
