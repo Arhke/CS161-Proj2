@@ -617,7 +617,6 @@ func CheckFileMeta(invitation Invitation, input []byte)(filemeta Filemeta, err e
 }//done
 func ReadRemoteFileMeta(invitation Invitation, userdata *User)(filemeta Filemeta, err error){
 	filemetaUUID, err := GetFileMetaUUID(invitation.Owner, invitation.Name, invitation.Initial)
-	fmt.Println("READ", filemetaUUID.String())
 	if err != nil {
 		return filemeta, err 
 	}
@@ -625,7 +624,6 @@ func ReadRemoteFileMeta(invitation Invitation, userdata *User)(filemeta Filemeta
 	if !ok {
 		return filemeta, errors.New("Cannot get Data for FileMetaBytes")
 	}
-	fmt.Println("READ", filemetabytes[:16])
 	filemeta, err = CheckFileMeta(invitation, filemetabytes)
 	if err != nil {
 		return filemeta, err
@@ -634,7 +632,6 @@ func ReadRemoteFileMeta(invitation Invitation, userdata *User)(filemeta Filemeta
 }//done
 func UpdateRemoteFileMeta(filemetameta Filemetameta, userdata *User, filemeta Filemeta)(err error){
 	filemetaUUID, err := GetFileMetaUUID(filemeta.Owner, filemeta.Name, filemetameta.Sent)
-	fmt.Println("WRITE", filemetaUUID.String())
 	if err != nil {
 		return err 
 	}
@@ -645,7 +642,6 @@ func UpdateRemoteFileMeta(filemetameta Filemetameta, userdata *User, filemeta Fi
 	}
 
 	userlib.DatastoreSet(filemetaUUID, filemetabytes)
-	fmt.Println("WRITE", filemetabytes[:16])
 	return nil
 }//done
 func GenFileMeta(owner string, filename string)(filemeta Filemeta, err error){

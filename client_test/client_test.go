@@ -492,6 +492,21 @@ var _ = Describe("Client Tests", func() {
 
 		Specify("AppendToFile", func() {
 			userlib.DebugMsg("Initializing user Alice.")
+			alice, err := client.InitUser("alice", defaultPassword)
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Accessing a file without storing it.")
+			_, err = alice.LoadFile(aliceFile)
+			Expect(err).ToNot(BeNil())
+
+			
+		})
+
+	})
+	Describe("Self Test8", func() {
+
+		Specify("AppendToFile", func() {
+			userlib.DebugMsg("Initializing user Alice.")
 			alice, err = client.InitUser("alice", defaultPassword)
 			Expect(err).To(BeNil())
 
@@ -634,17 +649,17 @@ var _ = Describe("Client Tests", func() {
 			invitationid, err = bob.CreateInvitation(aliceFile, "charles")
 			Expect(err).To(BeNil())
 
-			// userlib.DebugMsg("Charles Accepts aliceFile from bob rename BobFile. (fail)")
-			// err = charles.AcceptInvitation("bob", invitationid, bobFile)
-			// Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Charles Accepts aliceFile from bob rename BobFile. (fail)")
+			err = charles.AcceptInvitation("bob", invitationid, bobFile)
+			Expect(err).ToNot(BeNil())
 
 			userlib.DebugMsg("Charles Accepts aliceFile from bob rename AliceFile.")
 			err = charles.AcceptInvitation("bob", invitationid, aliceFile)
 			Expect(err).To(BeNil())
 
-			userlib.DebugMsg("Charles append 1 to AliceFile.<=======================================================")
-			err = charles.StoreFile(aliceFile, []byte(contentOne))
-			Expect(err).To(BeNil())
+			// userlib.DebugMsg("Charles append 1 to AliceFile.")
+			// err = charles.AppendToFile(aliceFile, []byte(contentOne))
+			// Expect(err).To(BeNil())
 
 			userlib.DebugMsg("Charles Invites Dorris to edit bobFile.")
 			invitationid, err = charles.CreateInvitation(bobFile, "doris")
@@ -654,9 +669,12 @@ var _ = Describe("Client Tests", func() {
 			data, err = doris.LoadFile(bobFile)
 			Expect(err).ToNot(BeNil())
 
+			userlib.DebugMsg("Doris Accepts bobFile from bob rename BobFile. (Fail)")
+			err = doris.AcceptInvitation("bob", invitationid, bobFile)
+			Expect(err).ToNot(BeNil())
 
 			userlib.DebugMsg("Doris Accepts bobFile from charles rename BobFile. ")
-			err = doris.AcceptInvitation("bob", invitationid, bobFile)
+			err = doris.AcceptInvitation("charles", invitationid, bobFile)
 			Expect(err).To(BeNil())
 
 			userlib.DebugMsg("Doris Loads BobFile.")
@@ -667,6 +685,35 @@ var _ = Describe("Client Tests", func() {
 
 			userlib.DebugMsg("Charles Revoke BobFile From Doris (fail).")
 			err = charles.RevokeAccess(bobFile, "doris")
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Revoke AliceFile From Random (fail).")
+			err = alice.RevokeAccess(aliceFile, "sodifjsdoifjs")
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Revoke randomFile From Charles (fail).")
+			err = alice.RevokeAccess("randomfilehere.txt", "charles")
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Revoke randomFile From NoOne (fail).")
+			err = alice.RevokeAccess(aliceFile, "")
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Revoke randomFile From Charles.")
+			err = alice.RevokeAccess(aliceFile, "charles")
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Doris Loads BobFile. (Fail)")
+			_, err = doris.LoadFile(bobFile)
+			Expect(err).ToNot(BeNil())
+
+
+			userlib.DebugMsg("Charles Loads BobFile. (Fail)")
+			_, err = charles.LoadFile(bobFile)
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Bob Loads BobFile. ")
+			data, err = charles.LoadFile(bobFile)
 			Expect(err).To(BeNil())
 			Expect(data).To(Equal([]byte(contentOne)))
 
