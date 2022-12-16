@@ -631,7 +631,7 @@ var _ = Describe("Client Tests", func() {
 			Expect(err).To(BeNil())
 			
 			userlib.DebugMsg("Bob Invites Charles to edit aliceFile.")
-			invitationid, err := bob.CreateInvitation(aliceFile, "charles")
+			invitationid, err = bob.CreateInvitation(aliceFile, "charles")
 			Expect(err).To(BeNil())
 
 			userlib.DebugMsg("Charles Accepts aliceFile from bob rename BobFile. (fail)")
