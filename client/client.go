@@ -182,8 +182,8 @@ func (userdata *User) StoreFile(filename string, content []byte) error {
 		return err
 	}
 	var fileinfo *Fileinfo
-	fileinfo, ok := SearchFileInfo(userdata, filename)//search for file info instance
-	if(ok){
+	fileinfo, index := SearchFileInfo(userdata, filename)//search for file info instance
+	if(index != -1){
 		if (fileinfo.Sender == userdata.UserName){//if yes then check if user is owner
 			//if is owner, try overwriting directly, then reencrypting using known params
 			//don't need to change filemeta
@@ -229,8 +229,8 @@ func (userdata *User) AppendToFile(filename string, content []byte) error {
 		return err
 	}
 	var fileinfo *Fileinfo
-	fileinfo, ok := SearchFileInfo(userdata, filename)//search for file info instance
-	if(ok){
+	fileinfo, index := SearchFileInfo(userdata, filename)//search for file info instance
+	if(index != -1){
 		if (fileinfo.Sender == userdata.UserName){//if yes then check if user is owner
 			//if is owner, try overwriting directly, then reencrypting using known params
 			//don't need to change filemeta
@@ -259,8 +259,8 @@ func (userdata *User) LoadFile(filename string) (content []byte, err error) {
 		return []byte(""), err
 	}
 	var fileinfo *Fileinfo
-	fileinfo, ok := SearchFileInfo(userdata, filename)//search for file info instance
-	if(ok){
+	fileinfo, index := SearchFileInfo(userdata, filename)//search for file info instance
+	if(index != -1){
 		if (fileinfo.Sender == userdata.UserName){//if yes then check if user is owner
 			//if is owner, try overwriting directly, then reencrypting using known params
 			//don't need to change filemeta 
@@ -291,8 +291,8 @@ func (userdata *User) CreateInvitation(filename string, recipientUsername string
 		return uuid.New(), err
 	}
 	var fileinfo *Fileinfo
-	fileinfo, ok := SearchFileInfo(userdata, filename)//search for file info instance
-	if !ok {
+	fileinfo, index := SearchFileInfo(userdata, filename)//search for file info instance
+	if index == -1 {
 		return uuid.New(), errors.New("You Don't have that file in your namespace")
 	}
 	var invitation Invitation
@@ -305,6 +305,8 @@ func (userdata *User) CreateInvitation(filename string, recipientUsername string
 		filemetameta.Sent = recipientUsername
 		//add a new local filemetameta and increment nextfilemetameta
 		fileinfo.FileMetaMeta[fileinfo.NextFileMetaMeta] = filemetameta
+		
+
 		fileinfo.NextFileMetaMeta++
 		
 		//add new remote invite update remote user struct
@@ -346,8 +348,8 @@ func (userdata *User) AcceptInvitation(senderUsername string, invitationPtr uuid
 	if err != nil {
 		return err
 	}
-	_, ok := SearchFileInfo(userdata, filename)//search for file info instance
-	if ok {
+	_, index := SearchFileInfo(userdata, filename)//search for file info instance
+	if index != -1 {
 		return errors.New("You already have that file in your namespace")
 	}
 	//copy the UUID from the function parameter into a custom UUID
@@ -380,43 +382,43 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 	if err != nil {
 		return err
 	}
-	fileinfo, ok := SearchFileInfo(userdata, filename)
-	if !ok {
+	fileinfo, index := SearchFileInfo(userdata, filename)
+	if index == -1 {
 		return errors.New("You Don't have that file in your namespace")
 	}
 	if fileinfo.Sender != userdata.UserName{
 		return errors.New("You Don't own the file")
 	}
-	fmm, ok := SearchFileMetaMeta(fileinfo, recipientUsername)
-	if !ok{
+	fmm, index1 := SearchFileMetaMeta(fileinfo, recipientUsername)
+	if index1 == -1{
 		return errors.New("The file is not shared with the specified recipient")
 	}
 	//change the filemetameta keyvalues
 	fmm.MacKey = userlib.RandomBytes(16)
 	fmm.SymmetricKey = userlib.RandomBytes(16)
 	fmm.Sent = ""
-	
-	
+	fileinfo.FileMetaMeta[index] = (*fmm)	
+	fmt.Println(fmm)
+	fmt.Println(userdata.FileInfo[index].FileMetaMeta[index1])
+	fmt.Println(userdata.FileInfo[index].FileMetaMeta[index1].Sent == fmm.Sent)
 	//Reencrypt the file with the new File Meta (read then rewrite)
 	content, err := ReadRemoteFile(fileinfo.FileMeta)
 	if err != nil {
 		return err
 	}
 	//generate a new FileMeta
-	filemeta, err := GenFileMeta(userdata.UserName, filename)
+	fileinfo.FileMeta, err = GenFileMeta(userdata.UserName, filename)
 	if err != nil {
 		return err
 	}
-	err = UpdateRemoteFile(filemeta, content, false)
+	err = UpdateRemoteFile(fileinfo.FileMeta, content, false)
 	if err != nil {
 		return err
 	}
 	//Update the RemoteFileMetas
-	fileinfo, _ = SearchFileInfo(userdata, filename)
-	fileinfo.FileMeta = filemeta //update local filemeta
 	for i := 0; i < fileinfo.NextFileMetaMeta; i++ {
 		filemetameta := fileinfo.FileMetaMeta[i]
-		err = UpdateRemoteFileMeta(filemetameta, userdata, filemeta)
+		err = UpdateRemoteFileMeta(filemetameta, userdata, fileinfo.FileMeta)
 		if err != nil {
 			return err
 		}
@@ -701,24 +703,24 @@ func UpdateNextPartNum(filemeta Filemeta, np int)(err error){
 
 //==================<Files>=====================
 
-func SearchFileInfo(userdata *User, file string) (fileinfo *Fileinfo, ok bool){
+func SearchFileInfo(userdata *User, file string) (fileinfo *Fileinfo, index int){
 	for i := 0; i < userdata.NextFileInfo; i++ {
 		fileinfo = &userdata.FileInfo[i]
 		if(fileinfo.Name == file){ //file matches search
-			return fileinfo, true
+			return fileinfo, i
 		}
 	}
-	return fileinfo, false
+	return fileinfo, -1
 }//done
-func SearchFileMetaMeta(fileinfo *Fileinfo, sent string) (fmm *Filemetameta, ok bool){
+func SearchFileMetaMeta(fileinfo *Fileinfo, sent string) (fmm *Filemetameta, index int){
 	var filemetameta *Filemetameta
 	for i := 0; i < fileinfo.NextFileMetaMeta; i++ {
 		filemetameta = &fileinfo.FileMetaMeta[i]
 		if(filemetameta.Sent == sent){ //sent matches the sent we are looking for
-			return filemetameta, true
+			return filemetameta, i
 		}
 	}
-	return filemetameta, false
+	return filemetameta, -1
 }//done
 func SecureFileNode(filemeta Filemeta, input []byte)(output []byte, err error){
 	output = input

@@ -186,6 +186,10 @@ var _ = Describe("Client Tests", func() {
 			charles, err = client.InitUser("charles", defaultPassword)
 			Expect(err).To(BeNil())
 
+
+			userlib.DebugMsg("Alice storing file %s with content: %s", aliceFile, "")
+			alice.StoreFile(aliceFile, []byte(""))
+
 			userlib.DebugMsg("Alice storing file %s with content: %s", aliceFile, contentOne)
 			alice.StoreFile(aliceFile, []byte(contentOne))
 
@@ -469,6 +473,8 @@ var _ = Describe("Client Tests", func() {
 
 			err = charles.AppendToFile(charlesFile, []byte(contentTwo))
 			Expect(err).ToNot(BeNil())
+
+
 			
 		})
 
@@ -503,7 +509,7 @@ var _ = Describe("Client Tests", func() {
 		})
 
 	})
-	Describe("Self Test8", func() {
+	Describe("Self Test9", func() {
 
 		Specify("AppendToFile", func() {
 			userlib.DebugMsg("Initializing user Alice.")
@@ -657,9 +663,9 @@ var _ = Describe("Client Tests", func() {
 			err = charles.AcceptInvitation("bob", invitationid, aliceFile)
 			Expect(err).To(BeNil())
 
-			userlib.DebugMsg("Charles append 1 to AliceFile.")
-			err = charles.AppendToFile(aliceFile, []byte(contentOne))
-			Expect(err).To(BeNil())
+			// userlib.DebugMsg("Charles append 1 to AliceFile.")
+			// err = charles.AppendToFile(aliceFile, []byte(contentOne))
+			// Expect(err).To(BeNil())
 
 			userlib.DebugMsg("Charles Invites Dorris to edit bobFile.")
 			invitationid, err = charles.CreateInvitation(bobFile, "doris")
@@ -699,6 +705,11 @@ var _ = Describe("Client Tests", func() {
 			err = alice.RevokeAccess(aliceFile, "")
 			Expect(err).ToNot(BeNil())
 
+			userlib.DebugMsg("Bob Loads BobFile. ")
+			data, err = charles.LoadFile(bobFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentOne)))
+			
 			userlib.DebugMsg("Alice Revoke randomFile From Charles.")
 			err = alice.RevokeAccess(aliceFile, "charles")
 			Expect(err).To(BeNil())
@@ -716,6 +727,21 @@ var _ = Describe("Client Tests", func() {
 			data, err = charles.LoadFile(bobFile)
 			Expect(err).To(BeNil())
 			Expect(data).To(Equal([]byte(contentOne)))
+
+			
+		})
+
+	})
+	Describe("Self Test10", func() {
+
+		Specify("AppendToFile", func() {
+			userlib.DebugMsg("Initializing user Alice.")
+			alice, err := client.InitUser("alice", defaultPassword)
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Accessing a file without storing it.")
+			_, err = alice.LoadFile(aliceFile)
+			Expect(err).ToNot(BeNil())
 
 			
 		})
