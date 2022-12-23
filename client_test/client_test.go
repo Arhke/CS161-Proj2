@@ -745,8 +745,9 @@ var _ = Describe("Client Tests", func() {
 			Expect(err).To(BeNil())
 
 			userlib.DebugMsg("Initializing user Bob.")
-			alice, err = client.InitUser("bob", defaultPassword)
+			bob, err = client.InitUser("bob", defaultPassword)
 			Expect(err).To(BeNil())
+
 
 
 			userlib.DebugMsg("Storing file data: %s", contentOne)
@@ -778,7 +779,7 @@ var _ = Describe("Client Tests", func() {
 			Expect(err).To(BeNil())
 
 			userlib.DebugMsg("Initializing user Bob.")
-			alice, err = client.InitUser("bob", defaultPassword)
+			bob, err = client.InitUser("bob", defaultPassword)
 			Expect(err).To(BeNil())
 
 
