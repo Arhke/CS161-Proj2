@@ -93,6 +93,7 @@ var _ = Describe("Client Tests", func() {
 			userlib.DebugMsg("Getting user Alice.")
 			aliceLaptop, err = client.GetUser("alice", defaultPassword)
 			Expect(err).To(BeNil())
+			userlib.DebugMsg("%s", doris)
 		})
 
 		Specify("Basic Test: Testing Single User Store/Load/Append.", func() {
