@@ -756,6 +756,8 @@ var _ = Describe("Client Tests", func() {
 			invitationid, err := alice.CreateInvitation(aliceFile, "bob")
 			Expect(err).To(BeNil())
 
+
+
 			userlib.DebugMsg("Alice Revoke aliceFile From Bob.")
 			err = alice.RevokeAccess(aliceFile, "bob")
 			Expect(err).To(BeNil())
@@ -764,6 +766,38 @@ var _ = Describe("Client Tests", func() {
 			userlib.DebugMsg("bob tries accept Invitation. (failed)")
 			err = bob.AcceptInvitation("alice", invitationid, bobFile)
 			Expect(err).ToNot(BeNil())
+
+
+			
+		})
+
+		Specify("AppendToFile", func() {
+			userlib.DebugMsg("Initializing user Alice.")
+			alice, err = client.InitUser("alice", defaultPassword)
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Initializing user Bob.")
+			alice, err = client.InitUser("bob", defaultPassword)
+			Expect(err).To(BeNil())
+
+
+			userlib.DebugMsg("Storing file data: %s", contentOne)
+			err = alice.StoreFile(aliceFile, []byte(contentOne))
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Alice Invites Bob to edit aliceFile.")
+			invitationid, err := alice.CreateInvitation(aliceFile, "bob")
+			Expect(err).To(BeNil())
+
+			userlib.DatastoreSet(invitationid, []byte("OOPS IT SEEMS TO HAVE CHANGED!"))
+
+			
+
+			userlib.DebugMsg("bob tries accept Invitation. (failed)")
+			err = bob.AcceptInvitation("alice", invitationid, bobFile)
+			Expect(err).ToNot(BeNil())
+
+
 			
 		})
 
