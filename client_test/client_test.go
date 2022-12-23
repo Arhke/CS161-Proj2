@@ -549,6 +549,10 @@ var _ = Describe("Client Tests", func() {
 			_, err = alice.CreateInvitation(bobFile, "bob")
 			Expect(err).ToNot(BeNil())
 
+			userlib.DebugMsg("Alice Invite ADINSX to edit bobFile. (fails)")
+			_, err = alice.CreateInvitation(aliceFile, "ADINSX")
+			Expect(err).ToNot(BeNil())
+
 			userlib.DebugMsg("Alice Invite Bob to edit aliceFile.")
 			invitationid, err := alice.CreateInvitation(aliceFile, "bob")
 			Expect(err).To(BeNil())
@@ -736,13 +740,30 @@ var _ = Describe("Client Tests", func() {
 
 		Specify("AppendToFile", func() {
 			userlib.DebugMsg("Initializing user Alice.")
-			alice, err := client.InitUser("alice", defaultPassword)
+			alice, err = client.InitUser("alice", defaultPassword)
 			Expect(err).To(BeNil())
 
-			userlib.DebugMsg("Accessing a file without storing it.")
-			_, err = alice.LoadFile(aliceFile)
-			Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Initializing user Bob.")
+			alice, err = client.InitUser("bob", defaultPassword)
+			Expect(err).To(BeNil())
 
+
+			userlib.DebugMsg("Storing file data: %s", contentOne)
+			err = alice.StoreFile(aliceFile, []byte(contentOne))
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Alice Invites Bob to edit aliceFile.")
+			invitationid, err := alice.CreateInvitation(aliceFile, "bob")
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Alice Revoke aliceFile From Bob.")
+			err = alice.RevokeAccess(aliceFile, "bob")
+			Expect(err).To(BeNil())
+
+
+			userlib.DebugMsg("bob tries accept Invitation. (failed)")
+			err = bob.AcceptInvitation("alice", invitationid, bobFile)
+			Expect(err).ToNot(BeNil())
 			
 		})
 
