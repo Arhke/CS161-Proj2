@@ -510,233 +510,233 @@ var _ = Describe("Client Tests", func() {
 		})
 
 	})
-	// Describe("Self Test9", func() {
+	Describe("Self Test9", func() {
 
-	// 	Specify("AppendToFile", func() {
-	// 		userlib.DebugMsg("Initializing user Alice.")
-	// 		alice, err = client.InitUser("alice", defaultPassword)
-	// 		Expect(err).To(BeNil())
+		Specify("AppendToFile", func() {
+			userlib.DebugMsg("Initializing user Alice.")
+			alice, err = client.InitUser("alice", defaultPassword)
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Accessing a file without storing it.")
-	// 		err = alice.AppendToFile(aliceFile, []byte(contentOne))
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Accessing a file without storing it.")
+			err = alice.AppendToFile(aliceFile, []byte(contentOne))
+			Expect(err).ToNot(BeNil())
 			
-	// 		userlib.DebugMsg("Store AliceFile.")
-	// 		err = alice.StoreFile(aliceFile, []byte(contentOne))
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Store AliceFile.")
+			err = alice.StoreFile(aliceFile, []byte(contentOne))
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Storing contentOne into aliceFile.")
-	// 		err = alice.AppendToFile(aliceFile, []byte(contentOne))
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Storing contentOne into aliceFile.")
+			err = alice.AppendToFile(aliceFile, []byte(contentOne))
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Appending an emtpy string onto contentOne")
-	// 		err = alice.AppendToFile(aliceFile, []byte(""))
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Appending an emtpy string onto contentOne")
+			err = alice.AppendToFile(aliceFile, []byte(""))
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Load the file.")
-	// 		data, err := alice.LoadFile(aliceFile)
-	// 		Expect(err).To(BeNil())
-	// 		Expect(data).To(Equal([]byte(contentOne+contentOne)))
+			userlib.DebugMsg("Load the file.")
+			data, err := alice.LoadFile(aliceFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentOne+contentOne)))
 
-	// 		userlib.DebugMsg("Initializing user Bob.")
-	// 		bob, err = client.InitUser("bob", defaultPassword)
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Initializing user Bob.")
+			bob, err = client.InitUser("bob", defaultPassword)
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Bob Stores AliceFile.")
-	// 		err = bob.StoreFile(aliceFile, []byte(contentTwo))
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Bob Stores AliceFile.")
+			err = bob.StoreFile(aliceFile, []byte(contentTwo))
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Alice Invite Bob to edit bobFile. (fails)")
-	// 		_, err = alice.CreateInvitation(bobFile, "bob")
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Alice Invite Bob to edit bobFile. (fails)")
+			_, err = alice.CreateInvitation(bobFile, "bob")
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Alice Invite ADINSX to edit bobFile. (fails)")
-	// 		_, err = alice.CreateInvitation(aliceFile, "ADINSX")
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Alice Invite ADINSX to edit bobFile. (fails)")
+			_, err = alice.CreateInvitation(aliceFile, "ADINSX")
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Alice Invite Bob to edit aliceFile.")
-	// 		invitationid, err := alice.CreateInvitation(aliceFile, "bob")
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Alice Invite Bob to edit aliceFile.")
+			invitationid, err := alice.CreateInvitation(aliceFile, "bob")
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Bob Accepts aliceFile from Alice rename BobFile.")
-	// 		err = bob.AcceptInvitation("alice", invitationid, bobFile)
-	// 		Expect(err).To(BeNil())
-
-
-	// 		userlib.DebugMsg("Bob Stores to BobFile.")
-	// 		err = bob.StoreFile(bobFile, []byte(contentThree))
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Bob Accepts aliceFile from Alice rename BobFile.")
+			err = bob.AcceptInvitation("alice", invitationid, bobFile)
+			Expect(err).To(BeNil())
 
 
-	// 		userlib.DebugMsg("Bob Creates AliceFile.")
-	// 		err = bob.StoreFile(aliceFile, []byte(contentThree))
-	// 		Expect(err).To(BeNil())
-
-	// 		userlib.DebugMsg("Initializing user Charles.")
-	// 		charles, err = client.InitUser("charles", defaultPassword)
-	// 		Expect(err).To(BeNil())
-
-	// 		userlib.DebugMsg("ReInitializing user Charles. (failed)")
-	// 		_, err = client.InitUser("charles", defaultPassword)
-	// 		Expect(err).ToNot(BeNil())
-
-	// 		userlib.DebugMsg("Alice Invite Random to edit aliceFile. (failed)")
-	// 		_, err = alice.CreateInvitation(aliceFile, "ow98jiewhnwodifwoid")
-	// 		Expect(err).ToNot(BeNil())
-
-	// 		userlib.DebugMsg("Alice Invite Empty to edit aliceFile. (failed)")
-	// 		_, err = alice.CreateInvitation(aliceFile, "")
-	// 		Expect(err).ToNot(BeNil())
-
-	// 		userlib.DebugMsg("Alice Invite Charles to edit RandomFile. (failed)")
-	// 		_, err = alice.CreateInvitation("ow98jiewhnwodifwoid", "charles")
-	// 		Expect(err).ToNot(BeNil())
-
-	// 		userlib.DebugMsg("Alice Invite Charles to edit EmptyFileName. (failed)")
-	// 		_, err = alice.CreateInvitation("", "charles")
-	// 		Expect(err).ToNot(BeNil())
-
-	// 		userlib.DebugMsg("Alice Invite Charles to edit aliceFile.")
-	// 		invitationid, err = alice.CreateInvitation(aliceFile, "charles")
-	// 		Expect(err).To(BeNil())
-
-	// 		userlib.DebugMsg("Initializing user doris.")
-	// 		doris, err = client.InitUser("doris", defaultPassword)
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Bob Stores to BobFile.")
+			err = bob.StoreFile(bobFile, []byte(contentThree))
+			Expect(err).To(BeNil())
 
 
-	// 		userlib.DebugMsg("Doris Accepts aliceFile from Alice (fails)")
-	// 		err = doris.AcceptInvitation("alice", invitationid, bobFile)
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Bob Creates AliceFile.")
+			err = bob.StoreFile(aliceFile, []byte(contentThree))
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Initializing user Charles.")
+			charles, err = client.InitUser("charles", defaultPassword)
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("ReInitializing user Charles. (failed)")
+			_, err = client.InitUser("charles", defaultPassword)
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Invite Random to edit aliceFile. (failed)")
+			_, err = alice.CreateInvitation(aliceFile, "ow98jiewhnwodifwoid")
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Invite Empty to edit aliceFile. (failed)")
+			_, err = alice.CreateInvitation(aliceFile, "")
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Invite Charles to edit RandomFile. (failed)")
+			_, err = alice.CreateInvitation("ow98jiewhnwodifwoid", "charles")
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Invite Charles to edit EmptyFileName. (failed)")
+			_, err = alice.CreateInvitation("", "charles")
+			Expect(err).ToNot(BeNil())
+
+			userlib.DebugMsg("Alice Invite Charles to edit aliceFile.")
+			invitationid, err = alice.CreateInvitation(aliceFile, "charles")
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Initializing user doris.")
+			doris, err = client.InitUser("doris", defaultPassword)
+			Expect(err).To(BeNil())
 
 
-	// 		userlib.DebugMsg("Doris Creates AliceFile.")
-	// 		err = doris.StoreFile(aliceFile, []byte(contentOne))
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Doris Accepts aliceFile from Alice (fails)")
+			err = doris.AcceptInvitation("alice", invitationid, bobFile)
+			Expect(err).ToNot(BeNil())
 
 
-	// 		userlib.DebugMsg("Doris Invite Charles to edit aliceFile.")
-	// 		rejectid, err := doris.CreateInvitation(aliceFile, "charles")
-	// 		Expect(err).To(BeNil())
-
-	// 		userlib.DebugMsg("Charles Accepts DorisInvitation (from Alice) rename BobFile. (fails)")
-	// 		err = charles.AcceptInvitation("alice", rejectid, bobFile)
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Doris Creates AliceFile.")
+			err = doris.StoreFile(aliceFile, []byte(contentOne))
+			Expect(err).To(BeNil())
 
 
-	// 		userlib.DebugMsg("Charles Accepts aliceFile from Alice rename BobFile.")
-	// 		err = charles.AcceptInvitation("alice", invitationid, bobFile)
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Doris Invite Charles to edit aliceFile.")
+			rejectid, err := doris.CreateInvitation(aliceFile, "charles")
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Charles Loads BobFile.")
-	// 		data, err = charles.LoadFile(bobFile)
-	// 		Expect(err).To(BeNil())
-	// 		Expect(data).To(Equal([]byte(contentThree)))
+			userlib.DebugMsg("Charles Accepts DorisInvitation (from Alice) rename BobFile. (fails)")
+			err = charles.AcceptInvitation("alice", rejectid, bobFile)
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Alice Loads AliceFile.")
-	// 		data, err = alice.LoadFile(aliceFile)
-	// 		Expect(err).To(BeNil())
-	// 		Expect(data).To(Equal([]byte(contentThree)))
 
-	// 		userlib.DebugMsg("Bob Loads BobFile.")
-	// 		data, err = bob.LoadFile(bobFile)
-	// 		Expect(err).To(BeNil())
-	// 		Expect(data).To(Equal([]byte(contentThree)))
+			userlib.DebugMsg("Charles Accepts aliceFile from Alice rename BobFile.")
+			err = charles.AcceptInvitation("alice", invitationid, bobFile)
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Bob Loads AliceFile.")
-	// 		data, err = bob.LoadFile(aliceFile)
-	// 		Expect(err).To(BeNil())
-	// 		Expect(data).To(Equal([]byte(contentThree)))
+			userlib.DebugMsg("Charles Loads BobFile.")
+			data, err = charles.LoadFile(bobFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentThree)))
 
-	// 		userlib.DebugMsg("Bob Stores 2 to BobFile.")
-	// 		err = bob.StoreFile(bobFile, []byte(contentTwo))
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Alice Loads AliceFile.")
+			data, err = alice.LoadFile(aliceFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentThree)))
 
-	// 		userlib.DebugMsg("Charles Stores 1 to BobFile.")
-	// 		err = charles.StoreFile(bobFile, []byte(contentOne))
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Bob Loads BobFile.")
+			data, err = bob.LoadFile(bobFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentThree)))
+
+			userlib.DebugMsg("Bob Loads AliceFile.")
+			data, err = bob.LoadFile(aliceFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentThree)))
+
+			userlib.DebugMsg("Bob Stores 2 to BobFile.")
+			err = bob.StoreFile(bobFile, []byte(contentTwo))
+			Expect(err).To(BeNil())
+
+			userlib.DebugMsg("Charles Stores 1 to BobFile.")
+			err = charles.StoreFile(bobFile, []byte(contentOne))
+			Expect(err).To(BeNil())
 			
-	// 		userlib.DebugMsg("Bob Invites Charles to edit aliceFile.")
-	// 		invitationid, err = bob.CreateInvitation(aliceFile, "charles")
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Bob Invites Charles to edit aliceFile.")
+			invitationid, err = bob.CreateInvitation(aliceFile, "charles")
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Charles Accepts aliceFile from bob rename BobFile. (fail)")
-	// 		err = charles.AcceptInvitation("bob", invitationid, bobFile)
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Charles Accepts aliceFile from bob rename BobFile. (fail)")
+			err = charles.AcceptInvitation("bob", invitationid, bobFile)
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Charles Accepts aliceFile from bob rename AliceFile.")
-	// 		err = charles.AcceptInvitation("bob", invitationid, aliceFile)
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Charles Accepts aliceFile from bob rename AliceFile.")
+			err = charles.AcceptInvitation("bob", invitationid, aliceFile)
+			Expect(err).To(BeNil())
 
-	// 		// userlib.DebugMsg("Charles append 1 to AliceFile.")
-	// 		// err = charles.AppendToFile(aliceFile, []byte(contentOne))
-	// 		// Expect(err).To(BeNil())
+			// userlib.DebugMsg("Charles append 1 to AliceFile.")
+			// err = charles.AppendToFile(aliceFile, []byte(contentOne))
+			// Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Charles Invites Dorris to edit bobFile.")
-	// 		invitationid, err = charles.CreateInvitation(bobFile, "doris")
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Charles Invites Dorris to edit bobFile.")
+			invitationid, err = charles.CreateInvitation(bobFile, "doris")
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("doris Loads bobFile. (fail)")
-	// 		data, err = doris.LoadFile(bobFile)
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("doris Loads bobFile. (fail)")
+			data, err = doris.LoadFile(bobFile)
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Doris Accepts bobFile from bob rename BobFile. (Fail)")
-	// 		err = doris.AcceptInvitation("bob", invitationid, bobFile)
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Doris Accepts bobFile from bob rename BobFile. (Fail)")
+			err = doris.AcceptInvitation("bob", invitationid, bobFile)
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Doris Accepts bobFile from charles rename BobFile. ")
-	// 		err = doris.AcceptInvitation("charles", invitationid, bobFile)
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Doris Accepts bobFile from charles rename BobFile. ")
+			err = doris.AcceptInvitation("charles", invitationid, bobFile)
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Doris Loads BobFile.")
-	// 		data, err = doris.LoadFile(bobFile)
-	// 		Expect(err).To(BeNil())
-	// 		Expect(data).To(Equal([]byte(contentOne)))
+			userlib.DebugMsg("Doris Loads BobFile.")
+			data, err = doris.LoadFile(bobFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentOne)))
 
 
-	// 		userlib.DebugMsg("Charles Revoke BobFile From Doris (fail).")
-	// 		err = charles.RevokeAccess(bobFile, "doris")
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Charles Revoke BobFile From Doris (fail).")
+			err = charles.RevokeAccess(bobFile, "doris")
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Alice Revoke AliceFile From Random (fail).")
-	// 		err = alice.RevokeAccess(aliceFile, "sodifjsdoifjs")
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Alice Revoke AliceFile From Random (fail).")
+			err = alice.RevokeAccess(aliceFile, "sodifjsdoifjs")
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Alice Revoke randomFile From Charles (fail).")
-	// 		err = alice.RevokeAccess("randomfilehere.txt", "charles")
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Alice Revoke randomFile From Charles (fail).")
+			err = alice.RevokeAccess("randomfilehere.txt", "charles")
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Alice Revoke randomFile From NoOne (fail).")
-	// 		err = alice.RevokeAccess(aliceFile, "")
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Alice Revoke randomFile From NoOne (fail).")
+			err = alice.RevokeAccess(aliceFile, "")
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Bob Loads BobFile. ")
-	// 		data, err = charles.LoadFile(bobFile)
-	// 		Expect(err).To(BeNil())
-	// 		Expect(data).To(Equal([]byte(contentOne)))
+			userlib.DebugMsg("Bob Loads BobFile. ")
+			data, err = charles.LoadFile(bobFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentOne)))
 			
-	// 		userlib.DebugMsg("Alice Revoke randomFile From Charles.")
-	// 		err = alice.RevokeAccess(aliceFile, "charles")
-	// 		Expect(err).To(BeNil())
+			userlib.DebugMsg("Alice Revoke randomFile From Charles.")
+			err = alice.RevokeAccess(aliceFile, "charles")
+			Expect(err).To(BeNil())
 
-	// 		userlib.DebugMsg("Doris Loads BobFile. (Fail)")
-	// 		_, err = doris.LoadFile(bobFile)
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Doris Loads BobFile. (Fail)")
+			_, err = doris.LoadFile(bobFile)
+			Expect(err).ToNot(BeNil())
 
 
-	// 		userlib.DebugMsg("Charles Loads BobFile. (Fail)")
-	// 		_, err = charles.LoadFile(bobFile)
-	// 		Expect(err).ToNot(BeNil())
+			userlib.DebugMsg("Charles Loads BobFile. (Fail)")
+			_, err = charles.LoadFile(bobFile)
+			Expect(err).ToNot(BeNil())
 
-	// 		userlib.DebugMsg("Bob Loads BobFile. ")
-	// 		data, err = charles.LoadFile(bobFile)
-	// 		Expect(err).To(BeNil())
-	// 		Expect(data).To(Equal([]byte(contentOne)))
+			userlib.DebugMsg("Bob Loads BobFile. ")
+			data, err = charles.LoadFile(bobFile)
+			Expect(err).To(BeNil())
+			Expect(data).To(Equal([]byte(contentOne)))
 
 			
-	// 	})
+		})
 
-	// })
+	})
 	Describe("Self Test10", func() {
 
 		Specify("AppendToFile", func() {
