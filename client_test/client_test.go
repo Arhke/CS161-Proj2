@@ -383,102 +383,102 @@ var _ = Describe("Client Tests", func() {
 		})
 
 	})
-	Describe("Self Test6", func() {
+	// Describe("Self Test6", func() {
 
-		Specify("FileStorage", func() {
-			userlib.DebugMsg("Initializing users Alice, Bob, and Charlie.")
-			alice, err = client.InitUser("alice", defaultPassword)
-			Expect(err).To(BeNil())
-			bob, err = client.InitUser("bob", defaultPassword)
-			Expect(err).To(BeNil())
-			charles, err = client.InitUser("charles", defaultPassword)
-			Expect(err).To(BeNil())
-			aliceLaptop, err = client.GetUser("alice", defaultPassword)
-			Expect(err).To(BeNil())
-			alicePhone, err = client.GetUser("alice", defaultPassword)
-			Expect(err).To(BeNil())
-			// Different users can store files using the same filename, because each user must have a separate personal file namespace.
-			// Overwriting the contents of a file does not change who the file is shared with.
-			// Users can have multiple active user sessions at once.
-			userlib.DebugMsg("Alice,Bob,Charles storing file %s with content: %s %s %s", aliceFile, contentOne, contentTwo, contentThree)
-			alice.StoreFile(aliceFile, []byte(contentOne))
-			bob.StoreFile(aliceFile, []byte(contentTwo))
-			charles.StoreFile(aliceFile, []byte(contentThree))
+	// 	Specify("FileStorage", func() {
+	// 		userlib.DebugMsg("Initializing users Alice, Bob, and Charlie.")
+	// 		alice, err = client.InitUser("alice", defaultPassword)
+	// 		Expect(err).To(BeNil())
+	// 		bob, err = client.InitUser("bob", defaultPassword)
+	// 		Expect(err).To(BeNil())
+	// 		charles, err = client.InitUser("charles", defaultPassword)
+	// 		Expect(err).To(BeNil())
+	// 		aliceLaptop, err = client.GetUser("alice", defaultPassword)
+	// 		Expect(err).To(BeNil())
+	// 		alicePhone, err = client.GetUser("alice", defaultPassword)
+	// 		Expect(err).To(BeNil())
+	// 		// Different users can store files using the same filename, because each user must have a separate personal file namespace.
+	// 		// Overwriting the contents of a file does not change who the file is shared with.
+	// 		// Users can have multiple active user sessions at once.
+	// 		userlib.DebugMsg("Alice,Bob,Charles storing file %s with content: %s %s %s", aliceFile, contentOne, contentTwo, contentThree)
+	// 		alice.StoreFile(aliceFile, []byte(contentOne))
+	// 		bob.StoreFile(aliceFile, []byte(contentTwo))
+	// 		charles.StoreFile(aliceFile, []byte(contentThree))
 
-			userlib.DebugMsg("Checking that Alice,Bob,Charles can all still load the file.")
-			data, err := alice.LoadFile(aliceFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentOne)))
-			data, err = bob.LoadFile(aliceFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentTwo)))
-			data, err = charles.LoadFile(aliceFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentThree)))
-			data, err = aliceLaptop.LoadFile(aliceFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentOne)))
-			data, err = alicePhone.LoadFile(aliceFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentOne)))
+	// 		userlib.DebugMsg("Checking that Alice,Bob,Charles can all still load the file.")
+	// 		data, err := alice.LoadFile(aliceFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentOne)))
+	// 		data, err = bob.LoadFile(aliceFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentTwo)))
+	// 		data, err = charles.LoadFile(aliceFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentThree)))
+	// 		data, err = aliceLaptop.LoadFile(aliceFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentOne)))
+	// 		data, err = alicePhone.LoadFile(aliceFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentOne)))
 
-			userlib.DebugMsg("Alice creating invite for Bob for file %s, and Bob accepting invite under name %s.", aliceFile, bobFile)
-			invite, err := alice.CreateInvitation(aliceFile, "bob")
-			Expect(err).To(BeNil())
+	// 		userlib.DebugMsg("Alice creating invite for Bob for file %s, and Bob accepting invite under name %s.", aliceFile, bobFile)
+	// 		invite, err := alice.CreateInvitation(aliceFile, "bob")
+	// 		Expect(err).To(BeNil())
 
-			err = bob.AcceptInvitation("alice", invite, bobFile)
-			Expect(err).To(BeNil())
+	// 		err = bob.AcceptInvitation("alice", invite, bobFile)
+	// 		Expect(err).To(BeNil())
 
-			userlib.DebugMsg("Checking that Alice can still load the file.")
-			data, err = alice.LoadFile(aliceFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentOne)))
+	// 		userlib.DebugMsg("Checking that Alice can still load the file.")
+	// 		data, err = alice.LoadFile(aliceFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentOne)))
 
-			userlib.DebugMsg("Checking that Bob can load the file.")
-			data, err = bob.LoadFile(bobFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentOne)))
+	// 		userlib.DebugMsg("Checking that Bob can load the file.")
+	// 		data, err = bob.LoadFile(bobFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentOne)))
 
-			userlib.DebugMsg("Bob creating invite for Charles for file %s, and Charlie accepting invite under name %s.", bobFile, charlesFile)
-			invite, err = bob.CreateInvitation(bobFile, "charles")
-			Expect(err).To(BeNil())
+	// 		userlib.DebugMsg("Bob creating invite for Charles for file %s, and Charlie accepting invite under name %s.", bobFile, charlesFile)
+	// 		invite, err = bob.CreateInvitation(bobFile, "charles")
+	// 		Expect(err).To(BeNil())
 
-			err = charles.AcceptInvitation("bob", invite, charlesFile)
-			Expect(err).To(BeNil())
+	// 		err = charles.AcceptInvitation("bob", invite, charlesFile)
+	// 		Expect(err).To(BeNil())
 
-			userlib.DebugMsg("Checking that Charles can load the file.")
-			data, err = charles.LoadFile(charlesFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentOne)))
+	// 		userlib.DebugMsg("Checking that Charles can load the file.")
+	// 		data, err = charles.LoadFile(charlesFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentOne)))
 
-			userlib.DebugMsg("Alice revoking Bob's access from %s.", aliceFile)
-			err = alice.RevokeAccess(aliceFile, "bob")
-			Expect(err).To(BeNil())
+	// 		userlib.DebugMsg("Alice revoking Bob's access from %s.", aliceFile)
+	// 		err = alice.RevokeAccess(aliceFile, "bob")
+	// 		Expect(err).To(BeNil())
 
-			userlib.DebugMsg("Checking that Alice can still load the file.")
-			data, err = alice.LoadFile(aliceFile)
-			Expect(err).To(BeNil())
-			Expect(data).To(Equal([]byte(contentOne)))
+	// 		userlib.DebugMsg("Checking that Alice can still load the file.")
+	// 		data, err = alice.LoadFile(aliceFile)
+	// 		Expect(err).To(BeNil())
+	// 		Expect(data).To(Equal([]byte(contentOne)))
 
-			userlib.DebugMsg("Checking that Bob/Charles lost access to the file.")
-			_, err = bob.LoadFile(bobFile)
-			Expect(err).ToNot(BeNil())
+	// 		userlib.DebugMsg("Checking that Bob/Charles lost access to the file.")
+	// 		_, err = bob.LoadFile(bobFile)
+	// 		Expect(err).ToNot(BeNil())
 
-			_, err = charles.LoadFile(charlesFile)
-			Expect(err).ToNot(BeNil())
+	// 		_, err = charles.LoadFile(charlesFile)
+	// 		Expect(err).ToNot(BeNil())
 
-			userlib.DebugMsg("Checking that the revoked users cannot append to the file.")
-			err = bob.AppendToFile(bobFile, []byte(contentTwo))
-			Expect(err).ToNot(BeNil())
+	// 		userlib.DebugMsg("Checking that the revoked users cannot append to the file.")
+	// 		err = bob.AppendToFile(bobFile, []byte(contentTwo))
+	// 		Expect(err).ToNot(BeNil())
 
-			err = charles.AppendToFile(charlesFile, []byte(contentTwo))
-			Expect(err).ToNot(BeNil())
+	// 		err = charles.AppendToFile(charlesFile, []byte(contentTwo))
+	// 		Expect(err).ToNot(BeNil())
 
 
 			
-		})
+	// 	})
 
-	})
+	// })
 	Describe("Self Test7", func() {
 
 		Specify("LoadFile", func() {
@@ -789,7 +789,7 @@ var _ = Describe("Client Tests", func() {
 			invitationid, err := alice.CreateInvitation(aliceFile, "bob")
 			Expect(err).To(BeNil())
 
-			userlib.DatastoreSet(invitationid, []byte("OOPS IT SEEMS TO HAVE CHANGED!"))
+			userlib.DatastoreSet(invitationid, []byte("OOPS IT SEEMS TO HAVE CHANGED!"))	
 
 			
 
