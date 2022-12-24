@@ -295,6 +295,7 @@ func (userdata *User) CreateInvitation(filename string, recipientUsername string
 	if index == -1 {
 		return uuid.New(), errors.New("You Don't have that file in your namespace")
 	}
+
 	var invitation Invitation
 	if (fileinfo.Sender == userdata.UserName){
 		//own file
@@ -339,6 +340,7 @@ func (userdata *User) CreateInvitation(filename string, recipientUsername string
 		if (err != nil) {
 			return uuid.New(), err
 		}
+
 		return retUUID, nil
 	}
 }
@@ -362,10 +364,15 @@ func (userdata *User) AcceptInvitation(senderUsername string, invitationPtr uuid
 		return errors.New("Can't Get Invite")
 	}
 	userlib.DatastoreSet(inviteUUID, content)
-	_, err = CheckRemoteInvitation(userdata, senderUsername, filename)
+	invitation, err := CheckRemoteInvitation(userdata, senderUsername, filename)
 	if err != nil {
 		return err
 	}
+	_, err = ReadRemoteFileMeta(invitation, userdata)
+	if err != nil {
+		return err
+	}
+
 	//invitation is valid initialize new fileinfo
 	var newfileinfo Fileinfo
 	newfileinfo.Name = filename
@@ -382,6 +389,7 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 	if err != nil {
 		return err
 	}
+
 	fileinfo, index := SearchFileInfo(userdata, filename)
 	if index == -1 {
 		return errors.New("You Don't have that file in your namespace")
@@ -394,13 +402,11 @@ func (userdata *User) RevokeAccess(filename string, recipientUsername string) er
 		return errors.New("The file is not shared with the specified recipient")
 	}
 	//change the filemetameta keyvalues
+
 	fmm.MacKey = userlib.RandomBytes(16)
 	fmm.SymmetricKey = userlib.RandomBytes(16)
-	fmm.Sent = ""
-	fileinfo.FileMetaMeta[index] = (*fmm)	
-	fmt.Println(fmm)
-	fmt.Println(userdata.FileInfo[index].FileMetaMeta[index1])
-	fmt.Println(userdata.FileInfo[index].FileMetaMeta[index1].Sent == fmm.Sent)
+	fileinfo.FileMetaMeta[index1] = (*fmm)	
+
 	//Reencrypt the file with the new File Meta (read then rewrite)
 	content, err := ReadRemoteFile(fileinfo.FileMeta)
 	if err != nil {
@@ -490,6 +496,7 @@ func SendRemoteInvitation(userdata *User, to string, invitation Invitation)  (id
 		return uuid.New(), err
 	}
 	userlib.DatastoreSet(inviteUUID, iwrapperbytes)
+
 	return inviteUUID, nil
 }//done
 func CheckRemoteInvitation(userdata *User, from string, filename string) (invitation Invitation, err error) {
@@ -509,6 +516,7 @@ func CheckRemoteInvitation(userdata *User, from string, filename string) (invita
 	mackey := iwrapper.MacKey
 	symmetrickey := iwrapper.SymmetricKey
 	mackey, err = userlib.PKEDec(userdata.PrivateKey, mackey)
+
 	if err != nil {
 		return invitation, err
 	}
@@ -619,6 +627,7 @@ func CheckFileMeta(invitation Invitation, input []byte)(filemeta Filemeta, err e
 }//done
 func ReadRemoteFileMeta(invitation Invitation, userdata *User)(filemeta Filemeta, err error){
 	filemetaUUID, err := GetFileMetaUUID(invitation.Owner, invitation.Name, invitation.Initial)
+
 	if err != nil {
 		return filemeta, err 
 	}
@@ -638,11 +647,9 @@ func UpdateRemoteFileMeta(filemetameta Filemetameta, userdata *User, filemeta Fi
 		return err 
 	}
 	filemetabytes, err := SecureFileMeta(filemetameta, userdata, filemeta)
-	
 	if err != nil {
 		return err
 	}
-
 	userlib.DatastoreSet(filemetaUUID, filemetabytes)
 	return nil
 }//done
@@ -1061,13 +1068,13 @@ func GetNextPartUUID(owner string, filename string) (userpassPtr uuid.UUID, err 
  * Get FileMeta struct
  */
 func GetFileMetaUUID(owner string, filename string, user string) (userpassPtr uuid.UUID, err error) {
-	return uuid.FromBytes(userlib.Hash([]byte(user + owner + filename))[:16])
+	return uuid.FromBytes(userlib.Hash([]byte(user + owner + filename + "/FileMeta"))[:16])
 }
 /*
  * Invitation struct
  */
 func GetInvitationUUID(user string, filename string, sender string) (userpassPtr uuid.UUID, err error) {
-	return uuid.FromBytes(userlib.Hash([]byte(user + sender + filename))[:16])
+	return uuid.FromBytes(userlib.Hash([]byte(user + sender + filename + "/Invitation"))[:16])
 }
 
 
